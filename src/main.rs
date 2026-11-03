@@ -98,8 +98,11 @@ fn main() -> ExitCode {
 /// The legacy `tools/linux/img4` wrapper is only ever invoked with flags
 /// (`-i`, `-o`, `-M`, `-T`, `-A`), never a subcommand name. Detect that shape
 /// so this binary is a drop-in replacement for build.sh's existing call sites.
+/// clap's own top-level flags (`-h`/`--help`, `-V`/`--version`) are not legacy
+/// flags, so they go to clap.
 fn is_legacy_invocation(args: &[String]) -> bool {
-    matches!(args.first(), Some(first) if first.starts_with('-'))
+    matches!(args.first(), Some(first) if first.starts_with('-')
+        && !matches!(first.as_str(), "-h" | "--help" | "-V" | "--version"))
 }
 
 fn run_legacy(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
