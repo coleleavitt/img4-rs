@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use clap::{Parser, Subcommand, ValueEnum};
 use img4_rs::compression;
 use img4_rs::der::{read_tlv, universal, Class};
