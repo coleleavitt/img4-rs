@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn img4(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_img4")).args(args).output().expect("run img4")
+    Command::new(env!("CARGO_BIN_EXE_img4"))
+        .args(args)
+        .output()
+        .expect("run img4")
 }
 
 fn scratch(name: &str) -> PathBuf {
@@ -17,13 +20,24 @@ fn scratch(name: &str) -> PathBuf {
 fn help_and_version_go_to_clap_not_legacy_mode() {
     for flag in ["--help", "-h"] {
         let out = img4(&[flag]);
-        assert!(out.status.success(), "{flag}: {}", String::from_utf8_lossy(&out.stderr));
+        assert!(
+            out.status.success(),
+            "{flag}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         let stdout = String::from_utf8_lossy(&out.stdout);
-        assert!(stdout.contains("Usage:") && stdout.contains("create"), "{flag}: {stdout}");
+        assert!(
+            stdout.contains("Usage:") && stdout.contains("create"),
+            "{flag}: {stdout}"
+        );
     }
     for flag in ["--version", "-V"] {
         let out = img4(&[flag]);
-        assert!(out.status.success(), "{flag}: {}", String::from_utf8_lossy(&out.stderr));
+        assert!(
+            out.status.success(),
+            "{flag}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         assert!(String::from_utf8_lossy(&out.stdout).contains(env!("CARGO_PKG_VERSION")));
     }
 }
@@ -42,10 +56,21 @@ fn legacy_wrap_and_extract_still_work() {
     // build.sh shape: -i raw -o out -A -T fourcc -M manifest
     let img = dir.join("out.img4");
     let out = img4(&[
-        "-i", raw.to_str().unwrap(), "-o", img.to_str().unwrap(),
-        "-A", "-T", "rdsk", "-M", im4m.to_str().unwrap(),
+        "-i",
+        raw.to_str().unwrap(),
+        "-o",
+        img.to_str().unwrap(),
+        "-A",
+        "-T",
+        "rdsk",
+        "-M",
+        im4m.to_str().unwrap(),
     ]);
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let parsed = img4_rs::Img4::parse(&std::fs::read(&img).unwrap()).unwrap();
     assert_eq!(parsed.im4p.fourcc, "rdsk");
     assert_eq!(parsed.im4p.description, "Unknown");
@@ -54,6 +79,10 @@ fn legacy_wrap_and_extract_still_work() {
     // Legacy extract (no -M) writes the stored payload back out.
     let back = dir.join("back.bin");
     let out = img4(&["-i", img.to_str().unwrap(), "-o", back.to_str().unwrap()]);
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     assert_eq!(std::fs::read(&back).unwrap(), payload);
 }

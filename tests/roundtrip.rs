@@ -1,12 +1,18 @@
-use img4_rs::compression::*;
-use img4_rs::model::*;
 use std::fs;
 
-fn refdir() -> std::path::PathBuf { std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("reference") }
+use img4_rs::compression::*;
+use img4_rs::model::*;
+
+fn refdir() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("reference")
+}
 
 fn small_refs() -> Vec<std::path::PathBuf> {
-    let mut v: Vec<_> = fs::read_dir(refdir()).unwrap().map(|e| e.unwrap().path())
-        .filter(|p| fs::metadata(p).unwrap().len() < 50_000_000).collect();
+    let mut v: Vec<_> = fs::read_dir(refdir())
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| fs::metadata(p).unwrap().len() < 50_000_000)
+        .collect();
     v.sort();
     v
 }
@@ -44,7 +50,10 @@ fn kernelcache_properties_roundtrip() {
     let d = fs::read(refdir().join("known_good_kernelcache.img4")).unwrap();
     let img = Img4::parse(&d).unwrap();
     let props = img.im4p.properties().unwrap();
-    println!("props: {:?}", props.iter().map(|p| p.fourcc.clone()).collect::<Vec<_>>());
+    println!(
+        "props: {:?}",
+        props.iter().map(|p| p.fourcc.clone()).collect::<Vec<_>>()
+    );
     assert!(!props.is_empty());
     let mut r = img.im4p.to_tlv_bytes();
     let again = Im4p::parse(&r).unwrap();
@@ -55,7 +64,9 @@ fn kernelcache_properties_roundtrip() {
 
 #[test]
 fn lzfse_roundtrip() {
-    let raw: Vec<u8> = (0..100_000u32).map(|i| ((i * 7) % 251) as u8 ^ (i / 1000) as u8).collect();
+    let raw: Vec<u8> = (0..100_000u32)
+        .map(|i| ((i * 7) % 251) as u8 ^ (i / 1000) as u8)
+        .collect();
     let c = lzfse_compress(&raw).unwrap();
     assert!(c.starts_with(b"bvx2"));
     assert_eq!(detect_compression(&c), Compression::Lzfse);
@@ -64,8 +75,13 @@ fn lzfse_roundtrip() {
 
 #[test]
 fn lzss_roundtrip() {
-    let raw: Vec<u8> = b"hello hello hello world ".iter().cycle().take(20_000).cloned()
-        .chain((0..5000u32).map(|i| (i * 31 % 256) as u8)).collect();
+    let raw: Vec<u8> = b"hello hello hello world "
+        .iter()
+        .cycle()
+        .take(20_000)
+        .cloned()
+        .chain((0..5000u32).map(|i| (i * 31 % 256) as u8))
+        .collect();
     let c = lzss_compress(&raw).unwrap();
     assert_eq!(detect_compression(&c), Compression::Lzss);
     assert_eq!(decompress_payload(&c, Compression::Lzss).unwrap(), raw);

@@ -1,12 +1,13 @@
 #![forbid(unsafe_code)]
 
-use clap::{Parser, Subcommand, ValueEnum};
-use img4_rs::compression;
-use img4_rs::der::{read_tlv, universal, Class};
-use img4_rs::model::{sniff_kind, Im4p};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+use clap::{Parser, Subcommand, ValueEnum};
+use img4_rs::compression;
+use img4_rs::der::{Class, read_tlv, universal};
+use img4_rs::model::{Im4p, sniff_kind};
 
 #[derive(Parser)]
 #[command(name = "img4", version, about = "Byte-exact IMG4/IM4P container tool")]
@@ -147,7 +148,11 @@ fn run_legacy(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(manifest) = manifest {
         let manifest_bytes = fs::read(&manifest)?;
         let im4p = if kind == Some("IM4P") || kind == Some("IMG4") {
-            let mut im4p = if kind == Some("IMG4") { Img4Like::parse(&in_data)?.im4p } else { Im4p::parse(&in_data)? };
+            let mut im4p = if kind == Some("IMG4") {
+                Img4Like::parse(&in_data)?.im4p
+            } else {
+                Im4p::parse(&in_data)?
+            };
             if let Some(ref t) = fourcc_type {
                 if !t.eq_ignore_ascii_case(&im4p.fourcc) {
                     im4p.fourcc = t.clone();
@@ -161,7 +166,11 @@ fn run_legacy(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             // macOS toolchain (empty string made our files 7 bytes shorter).
             Im4p::new(&fourcc, "Unknown", in_data)
         };
-        let img4 = Img4Like { im4p, im4m: Some(manifest_bytes), im4r: None };
+        let img4 = Img4Like {
+            im4p,
+            im4m: Some(manifest_bytes),
+            im4r: None,
+        };
         fs::write(&output, img4.to_bytes())?;
     } else if kind == Some("IM4P") || kind == Some("IMG4") {
         fs::write(&output, load_im4p_from_any(&input)?.payload)?;
@@ -179,11 +188,23 @@ use img4_rs::model::Img4 as Img4Like;
 fn run_command(cmd: Command) -> Result<(), Box<dyn std::error::Error>> {
     match cmd {
         Command::Info { file } => cmd_info(&file),
-        Command::Extract { input, output, decompress } => cmd_extract(&input, output.as_deref(), decompress),
-        Command::Create { input, fourcc, compress, description, output } => {
-            cmd_create(&input, &fourcc, compress, &description, &output)
-        }
-        Command::Retype { input, fourcc, output } => cmd_retype(&input, &fourcc, &output),
+        Command::Extract {
+            input,
+            output,
+            decompress,
+        } => cmd_extract(&input, output.as_deref(), decompress),
+        Command::Create {
+            input,
+            fourcc,
+            compress,
+            description,
+            output,
+        } => cmd_create(&input, &fourcc, compress, &description, &output),
+        Command::Retype {
+            input,
+            fourcc,
+            output,
+        } => cmd_retype(&input, &fourcc, &output),
         Command::Attach { im4p, im4m, output } => cmd_attach(&im4p, im4m.as_deref(), &output),
     }
 }
@@ -193,7 +214,11 @@ fn load_im4p_from_any(path: &Path) -> Result<Im4p, Box<dyn std::error::Error>> {
     match sniff_kind(&data) {
         Some("IM4P") => Ok(Im4p::parse(&data)?),
         Some("IMG4") => Ok(Img4Like::parse(&data)?.im4p),
-        other => Err(format!("{}: not an IM4P or IMG4 (sniffed: {other:?})", path.display()).into()),
+        other => Err(format!(
+            "{}: not an IM4P or IMG4 (sniffed: {other:?})",
+            path.display()
+        )
+        .into()),
     }
 }
 
@@ -229,13 +254,27 @@ fn print_im4p_info(im4p: &Im4p, im4m_present: Option<bool>) {
         }
         _ => println!("properties:      none"),
     }
-    println!("keybag:          {}", if im4p.kbag.is_some() { "present" } else { "none" });
+    println!(
+        "keybag:          {}",
+        if im4p.kbag.is_some() {
+            "present"
+        } else {
+            "none"
+        }
+    );
     if let Some(present) = im4m_present {
-        println!("IM4M:            {}", if present { "present" } else { "absent" });
+        println!(
+            "IM4M:            {}",
+            if present { "present" } else { "absent" }
+        );
     }
 }
 
-fn cmd_extract(input: &Path, output: Option<&Path>, decompress: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn cmd_extract(
+    input: &Path,
+    output: Option<&Path>,
+    decompress: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let im4p = load_im4p_from_any(input)?;
     let bytes: Vec<u8> = if decompress {
         compression::decompress_payload(&im4p.payload, im4p.compression())?
@@ -288,7 +327,11 @@ fn cmd_retype(input: &Path, fourcc: &str, output: &Path) -> Result<(), Box<dyn s
     Ok(())
 }
 
-fn cmd_attach(im4p_path: &Path, im4m_path: Option<&Path>, output: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn cmd_attach(
+    im4p_path: &Path,
+    im4m_path: Option<&Path>,
+    output: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     let im4p = load_im4p_from_any(im4p_path)?;
     let im4m = match im4m_path {
         Some(p) => {
@@ -303,7 +346,11 @@ fn cmd_attach(im4p_path: &Path, im4m_path: Option<&Path>, output: &Path) -> Resu
         }
         None => None,
     };
-    let img4 = Img4Like { im4p, im4m, im4r: None };
+    let img4 = Img4Like {
+        im4p,
+        im4m,
+        im4r: None,
+    };
     fs::write(output, img4.to_bytes())?;
     Ok(())
 }

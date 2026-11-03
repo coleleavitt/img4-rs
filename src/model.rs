@@ -6,8 +6,9 @@
 //! payload bytes are exposed for mutation, so operations like `retype` are
 //! byte-exact by construction: nothing we do not touch can change.
 
-use crate::der::{self, read_tlv, universal, write_tlv, Class, DerError, Tag};
 use std::fmt;
+
+use crate::der::{self, Class, DerError, Tag, read_tlv, universal, write_tlv};
 
 #[derive(Debug)]
 pub enum Img4Error {
@@ -40,7 +41,9 @@ fn expect_ia5(tlv: &der::Tlv<'_>, expected: Option<&str>) -> Result<String> {
         .map_err(|_| Img4Error::Invalid("IA5String is not valid ASCII/UTF-8".into()))?;
     if let Some(exp) = expected {
         if !s.eq_ignore_ascii_case(exp) {
-            return Err(Img4Error::Invalid(format!("expected fourcc '{exp}', got '{s}'")));
+            return Err(Img4Error::Invalid(format!(
+                "expected fourcc '{exp}', got '{s}'"
+            )));
         }
     }
     Ok(s)
@@ -114,13 +117,17 @@ impl Property {
         der::for_each_tlv(set_tlv.content, |entry| {
             // Each entry is PRIVATE-tag(fourcc) wrapping a universal SEQUENCE{IA5 fourcc, value}.
             if entry.tag.class != Class::Private {
-                return Err(DerError::Invalid("property entry is not PRIVATE class".into()));
+                return Err(DerError::Invalid(
+                    "property entry is not PRIVATE class".into(),
+                ));
             }
             let fourcc = Tag::fourcc_from_number(entry.tag.number)
                 .ok_or_else(|| DerError::Invalid("non-ASCII property fourcc".into()))?;
             let inner = read_tlv(entry.content)?;
             if inner.tag.number != universal::SEQUENCE {
-                return Err(DerError::Invalid("expected SEQUENCE inside property".into()));
+                return Err(DerError::Invalid(
+                    "expected SEQUENCE inside property".into(),
+                ));
             }
             let mut inner_pos = 0usize;
             let inner_name = read_tlv(&inner.content[inner_pos..])?;
@@ -200,11 +207,20 @@ impl Im4p {
 
     pub fn set_size_hint(&mut self, size: i64) {
         let content = [
-            write_tlv(Tag::universal(universal::INTEGER, false), &der::encode_integer(1)),
-            write_tlv(Tag::universal(universal::INTEGER, false), &der::encode_integer(size)),
+            write_tlv(
+                Tag::universal(universal::INTEGER, false),
+                &der::encode_integer(1),
+            ),
+            write_tlv(
+                Tag::universal(universal::INTEGER, false),
+                &der::encode_integer(size),
+            ),
         ]
         .concat();
-        self.size_seq_tlv = Some(write_tlv(Tag::universal(universal::SEQUENCE, true), &content));
+        self.size_seq_tlv = Some(write_tlv(
+            Tag::universal(universal::SEQUENCE, true),
+            &content,
+        ));
     }
 
     pub fn properties(&self) -> Result<Vec<Property>> {
@@ -281,7 +297,14 @@ impl Im4p {
             return Err(Img4Error::Invalid("trailing data in IM4P".into()));
         }
 
-        Ok(Im4p { fourcc, description, payload, kbag, size_seq_tlv, properties_tlv })
+        Ok(Im4p {
+            fourcc,
+            description,
+            payload,
+            kbag,
+            size_seq_tlv,
+            properties_tlv,
+        })
     }
 
     /// Serialize back to the full top-level `SEQUENCE { IA5 "IM4P", ... }` TLV.

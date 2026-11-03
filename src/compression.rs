@@ -1,7 +1,8 @@
 //! Payload compression helpers (LZFSE via `lzfse_rust`; LZSS best-effort).
 
-use crate::model::Compression;
 use std::io;
+
+use crate::model::Compression;
 
 #[derive(Debug)]
 pub enum CompressionError {
@@ -32,7 +33,9 @@ pub fn lzfse_compress(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     let mut out = Vec::new();
     lzfse_rust::encode_bytes(data, &mut out)?;
     if !(out.starts_with(b"bvx2") && out.windows(4).any(|w| w == b"bvx$")) {
-        return Err(CompressionError::Lzfse("output missing bvx2/bvx$ markers".into()));
+        return Err(CompressionError::Lzfse(
+            "output missing bvx2/bvx$ markers".into(),
+        ));
     }
     Ok(out)
 }

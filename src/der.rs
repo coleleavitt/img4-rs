@@ -52,13 +52,25 @@ pub struct Tag {
 
 impl Tag {
     pub fn universal(number: u64, constructed: bool) -> Tag {
-        Tag { class: Class::Universal, constructed, number }
+        Tag {
+            class: Class::Universal,
+            constructed,
+            number,
+        }
     }
     pub fn context(number: u64, constructed: bool) -> Tag {
-        Tag { class: Class::Context, constructed, number }
+        Tag {
+            class: Class::Context,
+            constructed,
+            number,
+        }
     }
     pub fn private(number: u64, constructed: bool) -> Tag {
-        Tag { class: Class::Private, constructed, number }
+        Tag {
+            class: Class::Private,
+            constructed,
+            number,
+        }
     }
 
     /// The PRIVATE-class tag number img4 uses to wrap a fourcc-named value:
@@ -180,10 +192,16 @@ pub fn read_tlv(data: &[u8]) -> Result<Tlv<'_>, DerError> {
         length = n as usize;
     }
 
-    let content = data
-        .get(pos..pos + length)
-        .ok_or(DerError::Truncated)?;
-    Ok(Tlv { tag: Tag { class, constructed, number }, content, consumed: pos + length })
+    let content = data.get(pos..pos + length).ok_or(DerError::Truncated)?;
+    Ok(Tlv {
+        tag: Tag {
+            class,
+            constructed,
+            number,
+        },
+        content,
+        consumed: pos + length,
+    })
 }
 
 fn encode_len(len: usize) -> Vec<u8> {
@@ -245,7 +263,10 @@ pub fn decode_integer(content: &[u8]) -> i64 {
 
 /// Walk every top-level TLV inside `content` (the inside of a SEQUENCE/SET),
 /// calling `f` with each one until the content is exhausted.
-pub fn for_each_tlv<'a>(content: &'a [u8], mut f: impl FnMut(Tlv<'a>) -> Result<(), DerError>) -> Result<(), DerError> {
+pub fn for_each_tlv<'a>(
+    content: &'a [u8],
+    mut f: impl FnMut(Tlv<'a>) -> Result<(), DerError>,
+) -> Result<(), DerError> {
     let mut pos = 0usize;
     while pos < content.len() {
         let tlv = read_tlv(&content[pos..])?;
